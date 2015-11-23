@@ -80,19 +80,46 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return tfEditor;
     }
      
-
+    short interpolation (double x1, double x2, double alpha) {
+        return (short)Math.round((1 - alpha) * x1 + alpha * x2); 
+    }
+    
+    double biInterpolation (double x00, double x01, double x10, double x11, double alpha, double beta) {
+        double y0 = interpolation (x00, x01, alpha); 
+        double y1 = interpolation (x10, x11, alpha); 
+        return interpolation (y0, y1, beta);
+    }
+    
     short getVoxel(double[] coord) {
-
-        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
-                || coord[2] < 0 || coord[2] > volume.getDimZ()) {
-            return 0;
-        }
 
         int x = (int) Math.floor(coord[0]);
         int y = (int) Math.floor(coord[1]);
         int z = (int) Math.floor(coord[2]);
-
-        return volume.getVoxel(x, y, z);
+        
+        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
+                || coord[2] < 0 || coord[2] > volume.getDimZ() 
+                || (z + 2) > volume.getDimZ() || (y + 2) > volume.getDimY()) {
+            return 0;
+        }
+        
+        double alpha = coord[0] - x; 
+        double beta = coord[1] - y; 
+        double gamma = coord[2] - z; 
+        
+        short s000 = volume.getVoxel(x, y, z); 
+        short s001 = volume.getVoxel(x, y, z + 1); 
+        short s010 = volume.getVoxel(x, y + 1, z); 
+        short s011 = volume.getVoxel(x, y + 1, z + 1); 
+        short s100 = volume.getVoxel(x + 1, y, z); 
+        short s101 = volume.getVoxel(x + 1, y, z + 1); 
+        short s110 = volume.getVoxel(x + 1, y + 1, z); 
+        short s111 = volume.getVoxel(x + 1, y + 1, z + 1); 
+        
+        double temp1 = biInterpolation (s000, s010, s100, s110, alpha, beta); 
+        double temp2 = biInterpolation (s001, s011, s101, s111, alpha, beta); 
+        
+        return interpolation(temp1, temp2, gamma);
+        //return volume.getVoxel(x, y, z);
     }
 
 
@@ -126,8 +153,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         TFColor voxelColor = new TFColor();
 
         
-        for (int j = 0; j < image.getHeight(); j++) {
-            for (int i = 0; i < image.getWidth(); i++) {
+        for (int j = 0; j < (image.getHeight() - 1); j++) {
+            for (int i = 0; i < (image.getWidth() - 1); i++) {
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                         + volumeCenter[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
