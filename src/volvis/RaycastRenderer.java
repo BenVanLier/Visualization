@@ -98,7 +98,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
                 || coord[2] < 0 || coord[2] > volume.getDimZ() 
-                || (z + 2) > volume.getDimZ() || (y + 2) > volume.getDimY()) {
+                || (z + 2) > volume.getDimZ() || (y + 2) > volume.getDimY() || (x + 2) > volume.getDimX()) {
             return 0;
         }
         
@@ -169,6 +169,97 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 voxelColor.g = voxelColor.r;
                 voxelColor.b = voxelColor.r;
                 voxelColor.a = val > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
+                // Alternatively, apply the transfer function to obtain a color
+                // voxelColor = tFunc.getColor(val);
+                
+                
+                // BufferedImage expects a pixel color packed as ARGB in an int
+                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+                image.setRGB(i, j, pixelColor);
+            }
+        }
+
+    }
+    
+    
+    void mip(double[] viewMatrix) {
+
+        // clear image
+        for (int j = 0; j < image.getHeight(); j++) {
+            for (int i = 0; i < image.getWidth(); i++) {
+                image.setRGB(i, j, 0);
+            }
+        }
+
+        // vector uVec and vVec define a plane through the origin, 
+        // perpendicular to the view vector viewVec
+        double[] viewVec = new double[3];
+        double[] uVec = new double[3];
+        double[] vVec = new double[3];
+        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
+        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
+        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
+
+        // image is square
+        int imageCenter = image.getWidth() / 2;
+
+        double[] pixelCoord = new double[3];
+        double[] volumeCenter = new double[3];
+        VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
+ 
+        // sample on a plane through the origin of the volume data
+        double max = volume.getMaximum();
+        TFColor voxelColor = new TFColor();
+
+        
+        for (int j = 0; j < (image.getHeight() - 1); j++) {
+            for (int i = 0; i < (image.getWidth() - 1); i++) {
+                pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                        + volumeCenter[0];
+                pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                        + volumeCenter[1];
+                pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                        + volumeCenter[2];
+                
+                boolean cont = true;
+                int maxVal = 0; 
+                while (cont) {
+                    pixelCoord[0] = pixelCoord[0] + volume.getDimX() / 15 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + volume.getDimY() / 15 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + volume.getDimZ() / 15 * viewVec[2];
+                    
+                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
+                        || pixelCoord[2] > volume.getDimZ()) {
+                        cont = false; 
+                    }
+                    
+                    int val = getVoxel(pixelCoord);
+                    if (val > maxVal) { maxVal = val; } 
+                }
+                
+                while (!cont) {
+                    pixelCoord[0] = pixelCoord[0] - volume.getDimX() / 15 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] - volume.getDimY() / 15 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] - volume.getDimZ() / 15 * viewVec[2];
+                    
+                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
+                        || pixelCoord[2] > volume.getDimZ()) {
+                        cont = true; 
+                    }
+                    
+                    int val = getVoxel(pixelCoord);
+                    if (val > maxVal) { maxVal = val; } 
+                }
+                
+                // Map the intensity to a grey value by linear scaling
+                voxelColor.r = maxVal/max;
+                voxelColor.g = voxelColor.r;
+                voxelColor.b = voxelColor.r;
+                voxelColor.a = maxVal > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
                 // Alternatively, apply the transfer function to obtain a color
                 // voxelColor = tFunc.getColor(val);
                 
@@ -258,7 +349,15 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, viewMatrix, 0);
 
         long startTime = System.currentTimeMillis();
-        slicer(viewMatrix);    
+        switch(renderOption){
+            case 1: slicer(viewMatrix);
+                break;
+            case 2: mip(viewMatrix);
+                break; 
+                
+            default: slicer(viewMatrix);
+;               break; 
+        }
         
         long endTime = System.currentTimeMillis();
         double runningTime = (endTime - startTime);
@@ -302,6 +401,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
     private BufferedImage image;
     private double[] viewMatrix = new double[4 * 4];
+    public int renderOption;
 
     @Override
     public void changed() {
