@@ -161,7 +161,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                         + volumeCenter[2];
-
                 int val = getVoxel(pixelCoord);
                 
                 // Map the intensity to a grey value by linear scaling
@@ -223,7 +222,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                         + volumeCenter[2];
-                
+
                 boolean cont = true;
                 int maxVal = 0; 
                 while (cont) {
@@ -278,7 +277,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
     void compositing(double[] viewMatrix) {
-
+        
         // clear image
         for (int j = 0; j < image.getHeight(); j++) {
             for (int i = 0; i < image.getWidth(); i++) {
@@ -297,7 +296,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         // image is square
         int imageCenter = image.getWidth() / 2;
-
+        
         double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
@@ -307,53 +306,18 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         TFColor voxelColor = new TFColor();
 
         
-        for (int j = 0; j < (image.getHeight() - 1); j = j + 2) {
-            for (int i = 0; i < (image.getWidth() - 1); i = i + 2) {
+        for (int j = 0; j < (image.getHeight() - 1); j++) {
+            for (int i = 0; i < (image.getWidth() - 1); i++) {
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                        + volumeCenter[0];
+                        + volumeCenter[0]  - imageCenter * viewVec[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                        + volumeCenter[1];
+                        + volumeCenter[1] - imageCenter * viewVec[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                        + volumeCenter[2];
+                        + volumeCenter[2] - imageCenter * viewVec[2];
                 
-                boolean cont = true;
-                int maxVal = 0; 
-                while (cont) {
-                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
-                    
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
-                        || pixelCoord[2] > volume.getDimZ()) {
-                        cont = false; 
-                    }
-                    
-                    int val = getVoxel(pixelCoord);
-                    if (val > maxVal) { maxVal = val; } 
-                }
-                
-                while (!cont) {
-                    pixelCoord[0] = pixelCoord[0] - 10 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] - 10 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] - 10 * viewVec[2];
-                    
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
-                        || pixelCoord[2] > volume.getDimZ()) {
-                        cont = true; 
-                    }
-                    
-                    int val = getVoxel(pixelCoord);
-                    if (val > maxVal) { maxVal = val; } 
-                }
-                
-                // Map the intensity to a grey value by linear scaling
-                //voxelColor.r = maxVal/max;
-                //voxelColor.g = voxelColor.r;
-                //voxelColor.b = voxelColor.r;
-                //voxelColor.a = maxVal > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
-                // Alternatively, apply the transfer function to obtain a color
-                voxelColor = tFunc.getColor(maxVal);
-                
+                int val = getVoxel(pixelCoord);
+        
+                voxelColor = tFunc.getColor(val);
                 
                 // BufferedImage expects a pixel color packed as ARGB in an int
                 int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
@@ -361,10 +325,55 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
                 int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+
+                boolean cont = true;
+                
+                while(cont) {
+                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+                    
+                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+                            ) {
+                        cont = false; 
+                    }
+                    
+                    val = getVoxel(pixelCoord); 
+                    
+                    int c_a = c_alpha;
+                    int c_r = c_red;
+                    int c_g = c_green;
+                    int c_b = c_blue;
+                    
+                    voxelColor = tFunc.getColor(val);
+                    
+                    double tau = voxelColor.a;
+                     
+                    c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                    c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                    c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                    c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                    
+                    c_alpha = c_alpha > 0 ? 255 : 0;
+                    
+                    c_alpha = (int) Math.floor(tau * c_alpha + (1 - tau) * c_a);
+                    c_red = (int) Math.floor(tau * c_red + (1 - tau) * c_r);
+                    c_green = (int) Math.floor(tau * c_green + (1 - tau) * c_g);
+                    c_blue = (int) Math.floor(tau * c_blue + (1 - tau) * c_b);
+                         
+                    
+                    
+                    pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+                }
+                               
+                // Map the intensity to a grey value by linear scaling
+                
                 image.setRGB(i, j, pixelColor);
-                image.setRGB(i + 1, j, pixelColor);
-                image.setRGB(i, j + 1, pixelColor);
-                image.setRGB(i + 1, j + 1, pixelColor);
             }
         }
 
