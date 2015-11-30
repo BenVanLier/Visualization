@@ -215,8 +215,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         TFColor voxelColor = new TFColor();
 
         
-        for (int j = 0; j < (image.getHeight() - 1); j = j + 2) {
-            for (int i = 0; i < (image.getWidth() - 1); i = i + 2) {
+        for (int j = 0; j < (image.getHeight() - 1); j++) {
+            for (int i = 0; i < (image.getWidth() - 1); i++) {
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                         + volumeCenter[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -227,12 +227,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 boolean cont = true;
                 int maxVal = 0; 
                 while (cont) {
-                    pixelCoord[0] = pixelCoord[0] + volume.getDimX() / 15 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + volume.getDimY() / 15 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + volume.getDimZ() / 15 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] + 20 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 20 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 20 * viewVec[2];
                     
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
-                        || pixelCoord[2] > volume.getDimZ()) {
+                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[0] < 0 
+                        || pixelCoord[1] > volume.getDimY() || pixelCoord[1] < 0
+                        || pixelCoord[2] > volume.getDimZ() || pixelCoord[2] < 0) {
                         cont = false; 
                     }
                     
@@ -241,12 +242,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 }
                 
                 while (!cont) {
-                    pixelCoord[0] = pixelCoord[0] - volume.getDimX() / 15 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] - volume.getDimY() / 15 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] - volume.getDimZ() / 15 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] - 20 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] - 20 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] - 20 * viewVec[2];
                     
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
-                        || pixelCoord[2] > volume.getDimZ()) {
+                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[0] < 0 
+                        || pixelCoord[1] > volume.getDimY() || pixelCoord[1] < 0
+                        || pixelCoord[2] > volume.getDimZ() || pixelCoord[2] < 0) {
                         cont = true; 
                     }
                     
@@ -270,9 +272,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
                 image.setRGB(i, j, pixelColor);
-                image.setRGB(i + 1, j, pixelColor);
-                image.setRGB(i, j + 1, pixelColor);
-                image.setRGB(i + 1, j + 1, pixelColor);
             }
         }
 
@@ -320,9 +319,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 boolean cont = true;
                 int maxVal = 0; 
                 while (cont) {
-                    pixelCoord[0] = pixelCoord[0] + volume.getDimX() / 15 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + volume.getDimY() / 15 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + volume.getDimZ() / 15 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
                     
                     if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
                         || pixelCoord[2] > volume.getDimZ()) {
@@ -334,9 +333,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 }
                 
                 while (!cont) {
-                    pixelCoord[0] = pixelCoord[0] - volume.getDimX() / 15 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] - volume.getDimY() / 15 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] - volume.getDimZ() / 15 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] - 10 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] - 10 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] - 10 * viewVec[2];
                     
                     if (pixelCoord[0] > volume.getDimX() || pixelCoord[1] > volume.getDimY() 
                         || pixelCoord[2] > volume.getDimZ()) {
