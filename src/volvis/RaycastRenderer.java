@@ -81,47 +81,76 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
      
     short interpolation (double x1, double x2, double alpha) {
+        // Perform linear interpolation corresponding to the equation used
+        // in the lecture slides
         return (short)Math.round((1 - alpha) * x1 + alpha * x2); 
     }
     
-    double biInterpolation (double x00, double x01, double x10, double x11, double alpha, double beta) {
+    double biInterpolation (double x00, double x01, double x10, double x11, 
+            double alpha, double beta) {
+        // Performing two linear interpolations for a 2D figure (interpolation
+        // for the top line and bottom line of a 2D square)
         double y0 = interpolation (x00, x01, alpha); 
         double y1 = interpolation (x10, x11, alpha); 
+        // Perform linear interpolation between the two earlier calculated
+        // values
         return interpolation (y0, y1, beta);
     }
     
     short getVoxel(double[] coord) {
-
+        // computing the bottom left corners to the corresponding 
+        // input coordinates
         int x = (int) Math.floor(coord[0]);
         int y = (int) Math.floor(coord[1]);
         int z = (int) Math.floor(coord[2]);
         
-        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
+        // Determine if any of the input coordinates are outside the image
+        // boundaries. 
+        // Also determine if computed bottom left corner coordinates plus 2 
+        // are outside the image boundaries. Plus 2 is taken to overcome the
+        // start at 0 and the plus 1 used in a later stage of this method. 
+        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 
+                || coord[1] > volume.getDimY()
                 || coord[2] < 0 || coord[2] > volume.getDimZ() 
-                || (z + 2) > volume.getDimZ() || (y + 2) > volume.getDimY() || (x + 2) > volume.getDimX()) {
+                || (z + 2) > volume.getDimZ() || (y + 2) > volume.getDimY() 
+                || (x + 2) > volume.getDimX()) {
             return 0;
         }
         
+        // Determine relative place of the input coordinates compared to the 
+        // bottom left corner coordinates, used to compute alpha, beta and 
+        // gamma. 
         double alpha = coord[0] - x; 
         double beta = coord[1] - y; 
         double gamma = coord[2] - z; 
         
-        short s000 = volume.getVoxel(x, y, z); 
-        short s001 = volume.getVoxel(x, y, z + 1); 
-        short s010 = volume.getVoxel(x, y + 1, z); 
-        short s011 = volume.getVoxel(x, y + 1, z + 1); 
-        short s100 = volume.getVoxel(x + 1, y, z); 
-        short s101 = volume.getVoxel(x + 1, y, z + 1); 
-        short s110 = volume.getVoxel(x + 1, y + 1, z); 
-        short s111 = volume.getVoxel(x + 1, y + 1, z + 1); 
+        // Setting an initial 3D array of voxel values of each corner of a 
+        // 3D cube around the input coordinates 
+        int[][][] s = new int[2][2][2]; 
+        // Setting an initial array where the values of the bi-linear
+        // interpolation are stored. 
+        double[] temp = new double[2];
         
-        double temp1 = biInterpolation (s000, s010, s100, s110, alpha, beta); 
-        double temp2 = biInterpolation (s001, s011, s101, s111, alpha, beta); 
-        
-        return interpolation(temp1, temp2, gamma);
+        // A 3 part loop for determining the different voxel values of the 
+        // eight corners, and also directly determine the value of bi-linear
+        // interpolation in the outer loop
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k <2; k++) {
+                    // Determine voxel value
+                    s[i][j][k] = volume.getVoxel(x + i, y + j, z + k);
+                }
+            }
+            // Bi-linear interpolation for the plane corresponding to the i 
+            // value for the x coordinate
+            temp[i] = biInterpolation (s[i][0][0], s[i][0][1], s[i][1][0], 
+                    s[i][1][1], alpha, beta);
+        }
+
+        // Linear interpolation between the two bi-linear interpolation values
+        return interpolation(temp[0], temp[1], gamma);
         //return volume.getVoxel(x, y, z);
     }
-
 
     void slicer(double[] viewMatrix) {
 
@@ -216,43 +245,51 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         
         for (int j = 0; j < (image.getHeight() - 1); j++) {
             for (int i = 0; i < (image.getWidth() - 1); i++) {
+                // Using the original pixel coordinates set in the skeleton code,
+                // But now the starting point is not the middle of the image, but 
+                // is set just behind the image using: 
+                // imageCenter * viewVec[x];
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                        + volumeCenter[0];
+                        + volumeCenter[0]  - imageCenter * viewVec[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                        + volumeCenter[1];
+                        + volumeCenter[1] - imageCenter * viewVec[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                        + volumeCenter[2];
+                        + volumeCenter[2] - imageCenter * viewVec[2];
 
+                // Creating a boolean which is used for the while-loop to see
+                // when the viewvector leaves the image boundaries
                 boolean cont = true;
-                int maxVal = 0; 
-                while (cont) {
-                    pixelCoord[0] = pixelCoord[0] + 20 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 20 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 20 * viewVec[2];
+                int maxVal = getVoxel(pixelCoord);
+
+                // A while-loop used to "walk" across the view vector
+                while(cont) {
+                    // Each iteration, a step of X is taken across the view
+                    // vector and the corresponding pixel coordinates of the 
+                    // new voxel is determined. 
+                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
                     
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[0] < 0 
-                        || pixelCoord[1] > volume.getDimY() || pixelCoord[1] < 0
-                        || pixelCoord[2] > volume.getDimZ() || pixelCoord[2] < 0) {
+                    // If the view vector leaves the image boundaries, the while
+                    // loop is terminated. The boundaries are set to correspond
+                    // ......
+                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+                            ) {
                         cont = false; 
                     }
                     
+                    // Get the Voxel value for the new pixel coordinates
                     int val = getVoxel(pixelCoord);
-                    if (val > maxVal) { maxVal = val; } 
-                }
-                
-                while (!cont) {
-                    pixelCoord[0] = pixelCoord[0] - 20 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] - 20 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] - 20 * viewVec[2];
-                    
-                    if (pixelCoord[0] > volume.getDimX() || pixelCoord[0] < 0 
-                        || pixelCoord[1] > volume.getDimY() || pixelCoord[1] < 0
-                        || pixelCoord[2] > volume.getDimZ() || pixelCoord[2] < 0) {
-                        cont = true; 
-                    }
-                    
-                    int val = getVoxel(pixelCoord);
-                    if (val > maxVal) { maxVal = val; } 
+                    // Determine if the voxel value of the new coordinates
+                    // is larger than the already largest value. If so, the 
+                    // maxValue is changed to this value, otherwise it remains
+                    // untouched
+                    maxVal = val > maxVal ? val : maxVal; 
                 }
                 
                 // Map the intensity to a grey value by linear scaling
@@ -260,8 +297,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 voxelColor.g = voxelColor.r;
                 voxelColor.b = voxelColor.r;
                 voxelColor.a = maxVal > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
-                // Alternatively, apply the transfer function to obtain a color
-                // voxelColor = tFunc.getColor(val);
                 
                 
                 // BufferedImage expects a pixel color packed as ARGB in an int
@@ -305,9 +340,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double max = volume.getMaximum();
         TFColor voxelColor = new TFColor();
 
-        
         for (int j = 0; j < (image.getHeight() - 1); j++) {
             for (int i = 0; i < (image.getWidth() - 1); i++) {
+                // Using the original pixel coordinates set in the skeleton code,
+                // But now the starting point is not the middle of the image, but 
+                // is set just behind the image using: 
+                // imageCenter * viewVec[x];
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                         + volumeCenter[0]  - imageCenter * viewVec[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
@@ -316,7 +354,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[2] - imageCenter * viewVec[2];
                 
                 int val = getVoxel(pixelCoord);
-        
                 voxelColor = tFunc.getColor(val);
                 
                 // BufferedImage expects a pixel color packed as ARGB in an int
@@ -324,15 +361,23 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
                 int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
                 int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
-                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
-
+                
+                // Creating a boolean which is used for the while-loop to see
+                // when the viewvector leaves the image boundaries
                 boolean cont = true;
                 
+                // A while-loop used to "walk" across the view vector
                 while(cont) {
+                    // Each iteration, a step of X is taken across the view
+                    // vector and the corresponding pixel coordinates of the 
+                    // new voxel is determined. 
                     pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
                     pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
                     pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
                     
+                    // If the view vector leaves the image boundaries, the while
+                    // loop is terminated. The boundaries are set to correspond
+                    // ......
                     if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
                             || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
                         || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
@@ -343,36 +388,38 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         cont = false; 
                     }
                     
+                    // Get the voxelColor of the new pixel coordinates       
                     val = getVoxel(pixelCoord); 
-                    
-                    int c_a = c_alpha;
-                    int c_r = c_red;
-                    int c_g = c_green;
-                    int c_b = c_blue;
-                    
                     voxelColor = tFunc.getColor(val);
                     
+                    // Determine the intensity corresponding to the new pixel
+                    // coordinates
                     double tau = voxelColor.a;
-                     
-                    c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                    c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                    c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                    c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
                     
-                    c_alpha = c_alpha > 0 ? 255 : 0;
+                    // Calculating the individual ARGB values of the new pixel
+                    // coordinates
+                    int c_a = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                    int c_r = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                    int c_g = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                    int c_b = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255; 
                     
-                    c_alpha = (int) Math.floor(tau * c_alpha + (1 - tau) * c_a);
-                    c_red = (int) Math.floor(tau * c_red + (1 - tau) * c_r);
-                    c_green = (int) Math.floor(tau * c_green + (1 - tau) * c_g);
-                    c_blue = (int) Math.floor(tau * c_blue + (1 - tau) * c_b);
-                         
-                    
-                    
-                    pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+                    // Depending on the tau-value, determine the corresponding 
+                    // ARGB values of using the compositing "back to front" 
+                    // implementation based on the slides
+                    c_alpha = (int) Math.floor(tau * c_a + (1 - tau) * c_alpha);
+                    c_red = (int) Math.floor(tau * c_r + (1 - tau) * c_red);
+                    c_green = (int) Math.floor(tau * c_g + (1 - tau) * c_green);
+                    c_blue = (int) Math.floor(tau * c_b + (1 - tau) * c_blue);
                 }
                                
-                // Map the intensity to a grey value by linear scaling
-                
+                // Because the current implementation of the compositing can be
+                // opaque depending on the transfer function values (e.g. if the
+                // intensity is put at 0.6, the intensity will never surpass this
+                // value), the intensity if present is mapped to maximum, 
+                // otherwise it is mapped to 0
+                c_alpha = c_alpha > 0 ? 255 : 0;
+                // Determine the pixel colorand set the image to that color
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
                 image.setRGB(i, j, pixelColor);
             }
         }
