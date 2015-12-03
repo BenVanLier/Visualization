@@ -426,6 +426,121 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
     }
     
+    void TF2D(double[] viewMatrix) {
+        
+        // clear image
+        for (int j = 0; j < image.getHeight(); j++) {
+            for (int i = 0; i < image.getWidth(); i++) {
+                image.setRGB(i, j, 0);
+            }
+        }
+
+        // vector uVec and vVec define a plane through the origin, 
+        // perpendicular to the view vector viewVec
+        double[] viewVec = new double[3];
+        double[] uVec = new double[3];
+        double[] vVec = new double[3];
+        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
+        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
+        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
+
+        // image is square
+        int imageCenter = image.getWidth() / 2;
+        
+        double[] pixelCoord = new double[3];
+        double[] volumeCenter = new double[3];
+        VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
+ 
+        // sample on a plane through the origin of the volume data
+        double max = volume.getMaximum();
+        TFColor voxelColor = new TFColor();
+
+        for (int j = 0; j < (image.getHeight() - 1); j++) {
+            for (int i = 0; i < (image.getWidth() - 1); i++) {
+                // Using the original pixel coordinates set in the skeleton code,
+                // But now the starting point is not the middle of the image, but 
+                // is set just behind the image using: 
+                // imageCenter * viewVec[x];
+                pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                        + volumeCenter[0] + imageCenter * viewVec[0];
+                pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                        + volumeCenter[1] + imageCenter * viewVec[1];
+                pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                        + volumeCenter[2] + imageCenter * viewVec[2];
+                
+                int val = getVoxel(pixelCoord);
+                voxelColor = tFunc.getColor(val);
+                
+                // BufferedImage expects a pixel color packed as ARGB in an int
+                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                
+                // Creating a boolean which is used for the while-loop to see
+                // when the viewvector leaves the image boundaries
+                boolean cont = true;
+                
+                // A while-loop used to "walk" across the view vector
+                while(cont) {
+                    // Each iteration, a step of X is taken across the view
+                    // vector and the corresponding pixel coordinates of the 
+                    // new voxel is determined. 
+                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+                    
+                    // If the view vector leaves the image boundaries, the while
+                    // loop is terminated. The boundaries are set to correspond
+                    // ......
+                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+                            ) {
+                        cont = false; 
+                    }
+                    
+                    // Get the voxelColor of the new pixel coordinates       
+                    val = getVoxel(pixelCoord); 
+                    voxelColor = tFunc.getColor(val);
+                    
+                    // Determine the intensity corresponding to the new pixel
+                    // coordinates
+                    double tau = voxelColor.a;
+                    
+                    // Calculating the individual ARGB values of the new pixel
+                    // coordinates
+                    int c_a = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                    int c_r = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                    int c_g = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                    int c_b = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255; 
+                    
+                    // Depending on the tau-value, determine the corresponding 
+                    // ARGB values of using the compositing "back to front" 
+                    // implementation based on the slides
+                    c_alpha = (int) Math.floor(tau * c_a + (1 - tau) * c_alpha);
+                    c_red = (int) Math.floor(tau * c_r + (1 - tau) * c_red);
+                    c_green = (int) Math.floor(tau * c_g + (1 - tau) * c_green);
+                    c_blue = (int) Math.floor(tau * c_b + (1 - tau) * c_blue);
+                }
+                               
+                // Because the current implementation of the compositing can be
+                // opaque depending on the transfer function values (e.g. if the
+                // intensity is put at 0.6, the intensity will never surpass this
+                // value), the intensity if present is mapped to maximum, 
+                // otherwise it is mapped to 0
+                c_alpha = c_alpha > 0 ? 255 : 0;
+                // Determine the pixel colorand set the image to that color
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+                image.setRGB(i, j, pixelColor);
+            }
+        }
+
+    }
+    
     private void drawBoundingBox(GL2 gl) {
         gl.glPushAttrib(GL2.GL_CURRENT_BIT);
         gl.glDisable(GL2.GL_LIGHTING);
