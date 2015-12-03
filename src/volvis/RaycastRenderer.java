@@ -337,7 +337,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
  
         // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
         TFColor voxelColor = new TFColor();
 
         for (int j = 0; j < (image.getHeight() - 1); j++) {
@@ -452,14 +451,22 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
  
         // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
         TFColor voxelColor = new TFColor();
+        
+        tfEditor2D = new TransferFunction2DEditor(volume, gradients);
+        double opacity = tfEditor2D.triangleWidget.color.a;
+        double radius = tfEditor2D.triangleWidget.radius;
+        double bIntensity = tfEditor2D.triangleWidget.baseIntensity;
+           
+        double colorR = tfEditor2D.triangleWidget.color.r;
+        double colorG = tfEditor2D.triangleWidget.color.g;
+        double colorB = tfEditor2D.triangleWidget.color.b;        
 
         for (int j = 0; j < (image.getHeight() - 1); j++) {
             for (int i = 0; i < (image.getWidth() - 1); i++) {
                 // Using the original pixel coordinates set in the skeleton code,
                 // But now the starting point is not the middle of the image, but 
-                // is set just behind the image using: 
+                // is set just in front of the image using: 
                 // imageCenter * viewVec[x];
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                         + volumeCenter[0] + imageCenter * viewVec[0];
@@ -533,6 +540,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 // value), the intensity if present is mapped to maximum, 
                 // otherwise it is mapped to 0
                 c_alpha = c_alpha > 0 ? 255 : 0;
+                
                 // Determine the pixel colorand set the image to that color
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
                 image.setRGB(i, j, pixelColor);
@@ -619,6 +627,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             case 2: mip(viewMatrix);
                 break; 
             case 3: compositing(viewMatrix); 
+                break;
+            case 4: TF2D(viewMatrix);
                 break;
             default: slicer(viewMatrix);
 ;               break; 
