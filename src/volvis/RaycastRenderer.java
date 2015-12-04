@@ -370,9 +370,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     // Each iteration, a step of X is taken across the view
                     // vector and the corresponding pixel coordinates of the 
                     // new voxel is determined. 
-                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
                     
                     // If the view vector leaves the image boundaries, the while
                     // loop is terminated. The boundaries are set to correspond
@@ -393,7 +393,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     
                     // Determine the intensity corresponding to the new pixel
                     // coordinates
-                    double tau = voxelColor.a;
+                    double tau = voxelColor.a <= 1.0 ? voxelColor.a : 0.0;
                     
                     // Calculating the individual ARGB values of the new pixel
                     // coordinates
@@ -416,7 +416,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 // intensity is put at 0.6, the intensity will never surpass this
                 // value), the intensity if present is mapped to maximum, 
                 // otherwise it is mapped to 0
-                c_alpha = c_alpha > 0 ? 255 : 0;
+                //c_alpha = c_alpha > 0 ? 255 : 0;
                 // Determine the pixel colorand set the image to that color
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
                 image.setRGB(i, j, pixelColor);
