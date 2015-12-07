@@ -471,7 +471,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
  
         // sample on a plane through the origin of the volume data
         
-        tfEditor2D = new TransferFunction2DEditor(volume, gradients);
+//        tfEditor2D = new TransferFunction2DEditor(volume, gradients);
         double opacity = tfEditor2D.triangleWidget.color.a;
         double radius = tfEditor2D.triangleWidget.radius;
         double bIntensity = tfEditor2D.triangleWidget.baseIntensity;
