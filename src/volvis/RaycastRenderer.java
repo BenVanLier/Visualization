@@ -404,7 +404,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 //                        c_b = voxelColor.b * tau + (1 - tau) * c_b; 
 //                    }
 //                }
-                int scaling = 10; 
+                int scaling = 1; 
                 for (double k = 0.0; k < 4 * imageCenter; k = k + scaling) {
                     pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
                     pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
@@ -494,62 +494,100 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[2] - imageCenter * viewVec[2];
                 
  
-                // Creating a boolean which is used for the while-loop to see
-                // when the viewvector leaves the image boundaries
-                boolean cont = true;
-                double c_a = 1.0; 
+//                 Creating a boolean which is used for the while-loop to see
+//                 when the viewvector leaves the image boundaries
+//                boolean cont = true;
+                double c_a = 1;
+                double scaling = 1;
+                
+                for (double k = 0.0; k < 2 * imageCenter; k = k + scaling) {
                     
-                // A while-loop used to "walk" across the view vector
-                while(cont) {
-
-                    // Get the voxelColor of the new pixel coordinates       
-                    int val = getVoxel(pixelCoord);
-                    
-                    double alpha; 
-                    
-                    int pixelCoordX = (int) Math.floor(pixelCoord[0]);
-                    int pixelCoordY = (int) Math.floor(pixelCoord[1]);
-                    int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
-                    float mag = -1;
-                    if (pixelCoordX < 0 || pixelCoordX + 1 > volume.getDimX() 
-                            || pixelCoordY < 0 || pixelCoordY + 1 > volume.getDimY()
-                            || pixelCoordZ < 0 || pixelCoordZ + 1 > volume.getDimZ()) {
-                    }
-                    else{
-                        mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
-                    }
-
-                    if (mag == 0 && val == bIntensity) {
-                        alpha = opacity * 1.0; 
+                    if (pixelCoord[0] < 0 || pixelCoord[0] > (volume.getDimX() - 1) 
+                            || pixelCoord[1] < 0 || pixelCoord[1] > (volume.getDimY() - 1)
+                            || pixelCoord[2] < 0 || pixelCoord[2] > (volume.getDimZ() - 1)) {
                         
-                    } else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
-                        alpha = opacity * (1 - (1 / radius) * Math.abs((bIntensity - val) / mag));
-                    } else {
-                        alpha = opacity * 0.0;
-                    }
-
-                    c_a = c_a * (1 - alpha);
+                    } 
+                    else {
+                        int val = getVoxel(pixelCoord);
+                        
+                        double alpha; 
                     
-                    // Each iteration, a step of X is taken across the view
-                    // vector and the corresponding pixel coordinates of the 
-                    // new voxel is determined. 
-                    pixelCoord[0] = pixelCoord[0] + 8 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 8 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 8 * viewVec[2];
-                    
-                    // If the view vector leaves the image boundaries, the while
-                    // loop is terminated. The boundaries are set to correspond
-                    // ......
-                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-                            ) {
-                        cont = false; 
+                        int pixelCoordX = (int) Math.floor(pixelCoord[0]);
+                        int pixelCoordY = (int) Math.floor(pixelCoord[1]);
+                        int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
+                        
+//                        float mag = -1;
+                        float mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
+                        
+                        if (mag == 0 && val == bIntensity) {
+                            alpha = opacity * 1; 
+                        } 
+                        else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
+                            alpha = opacity * (1 - ((1 / radius) * Math.abs((bIntensity - val) / mag)));
+                        } 
+                        else {
+                            alpha = opacity * 0;
+                        }
+                        
+                        c_a = c_a * (1 - alpha);
                     }
+                    
+                    pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + scaling * viewVec[2];
                 }
+                               
+//                // A while-loop used to "walk" across the view vector
+//                while(cont) {
+//
+//                    // Get the voxelColor of the new pixel coordinates       
+//                    int val = getVoxel(pixelCoord);
+//                    
+//                    double alpha; 
+//                    
+//                    int pixelCoordX = (int) Math.floor(pixelCoord[0]);
+//                    int pixelCoordY = (int) Math.floor(pixelCoord[1]);
+//                    int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
+//                    float mag = -1;
+//                    if (pixelCoordX < 0 || pixelCoordX + 1 > volume.getDimX() 
+//                            || pixelCoordY < 0 || pixelCoordY + 1 > volume.getDimY()
+//                            || pixelCoordZ < 0 || pixelCoordZ + 1 > volume.getDimZ()) {
+//                    }
+//                    else{
+//                        mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
+//                    }
+//
+//                    if (mag == 0 && val == bIntensity) {
+//                        alpha = opacity * 1.0; 
+//                        
+//                    } else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
+//                        alpha = opacity * (1 - (1 / radius) * Math.abs((bIntensity - val) / mag));
+//                    } else {
+//                        alpha = opacity * 0.0;
+//                    }
+//
+//                    c_a = c_a * (1 - alpha);
+//                    
+//                    // Each iteration, a step of X is taken across the view
+//                    // vector and the corresponding pixel coordinates of the 
+//                    // new voxel is determined. 
+//                    pixelCoord[0] = pixelCoord[0] + 8 * viewVec[0];
+//                    pixelCoord[1] = pixelCoord[1] + 8 * viewVec[1];
+//                    pixelCoord[2] = pixelCoord[2] + 8 * viewVec[2];
+//                    
+//                    // If the view vector leaves the image boundaries, the while
+//                    // loop is terminated. The boundaries are set to correspond
+//                    // ......
+//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+//                            ) {
+//                        cont = false; 
+//                    }
+//                }
                                
                 int c_alpha = (1 - c_a) <= 1.0 ? (int) Math.floor((1 - c_a) * 255) : 255;
                 
