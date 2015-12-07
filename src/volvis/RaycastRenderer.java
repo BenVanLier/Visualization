@@ -356,67 +356,86 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 voxelColor = tFunc.getColor(val);
                 
                 // BufferedImage expects a pixel color packed as ARGB in an int
-                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                double c_a = voxelColor.a <= 1.0 ? voxelColor.a : 1.0;
+                double c_r = voxelColor.r <= 1.0 ? voxelColor.r : 1.0;
+                double c_g = voxelColor.g <= 1.0 ? voxelColor.g : 1.0;
+                double c_b = voxelColor.b <= 1.0 ? voxelColor.b : 1.0;
                 
                 // Creating a boolean which is used for the while-loop to see
                 // when the viewvector leaves the image boundaries
-                boolean cont = true;
+//                boolean cont = true;
                 
-                // A while-loop used to "walk" across the view vector
-                while(cont) {
-                    // Each iteration, a step of X is taken across the view
-                    // vector and the corresponding pixel coordinates of the 
-                    // new voxel is determined. 
-                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
+//                // A while-loop used to "walk" across the view vector
+//                while(cont) {
+//                    // Each iteration, a step of X is taken across the view
+//                    // vector and the corresponding pixel coordinates of the 
+//                    // new voxel is determined. 
+//                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
+//                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
+//                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
+//                    
+//                    // If the view vector leaves the image boundaries, the while
+//                    // loop is terminated. The boundaries are set to correspond
+//                    // ......
+//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+//                            ) {
+//                        cont = false; 
+//                    } else {
+//                    
+//                        // Get the voxelColor of the new pixel coordinates       
+//                        val = getVoxel(pixelCoord); 
+//                        voxelColor = tFunc.getColor(val);
+//
+//                        // Determine the intensity corresponding to the new pixel
+//                        // coordinates
+//                        double tau = voxelColor.a <= 1.0 ? voxelColor.a : 1.0;
+//
+//                        // Calculating the individual ARGB values of the new pixel
+//                        // coordinates
+//                        c_a = c_a * (1 - tau);
+//
+//                        c_r = voxelColor.r * tau + (1 - tau) * c_r; 
+//                        c_g = voxelColor.g * tau + (1 - tau) * c_g; 
+//                        c_b = voxelColor.b * tau + (1 - tau) * c_b; 
+//                    }
+//                }
+                int scaling = 10; 
+                for (double k = 0.0; k < 4 * imageCenter; k = k + scaling) {
+                    pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + scaling * viewVec[2];
                     
-                    // If the view vector leaves the image boundaries, the while
-                    // loop is terminated. The boundaries are set to correspond
-                    // ......
-                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-                            ) {
-                        cont = false; 
+                    if (pixelCoord[0] < 0 || pixelCoord[0] > (volume.getDimX() - 1) 
+                            || pixelCoord[1] < 0 || pixelCoord[1] > (volume.getDimY() - 1)
+                            || pixelCoord[2] < 0 || pixelCoord[2] > (volume.getDimZ() - 1)) {
+                        
+                    } else {
+                        val = getVoxel(pixelCoord); 
+                        voxelColor = tFunc.getColor(val);
+
+                        // Determine the intensity corresponding to the new pixel
+                        // coordinates
+                        double tau = voxelColor.a <= 1.0 ? voxelColor.a : 1.0;
+
+                        // Calculating the individual ARGB values of the new pixel
+                        // coordinates
+                        c_a = c_a * (1 - tau);
+
+                        c_r = voxelColor.r * tau + (1 - tau) * c_r; 
+                        c_g = voxelColor.g * tau + (1 - tau) * c_g; 
+                        c_b = voxelColor.b * tau + (1 - tau) * c_b; 
                     }
-                    
-                    // Get the voxelColor of the new pixel coordinates       
-                    val = getVoxel(pixelCoord); 
-                    voxelColor = tFunc.getColor(val);
-                    
-                    // Determine the intensity corresponding to the new pixel
-                    // coordinates
-                    double tau = voxelColor.a <= 1.0 ? voxelColor.a : 0.0;
-                    
-                    // Calculating the individual ARGB values of the new pixel
-                    // coordinates
-                    int c_a = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                    int c_r = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                    int c_g = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                    int c_b = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255; 
-                    
-                    // Depending on the tau-value, determine the corresponding 
-                    // ARGB values of using the compositing "back to front" 
-                    // implementation based on the slides
-                    c_alpha = (int) Math.floor(tau * c_a + (1 - tau) * c_alpha);
-                    c_red = (int) Math.floor(tau * c_r + (1 - tau) * c_red);
-                    c_green = (int) Math.floor(tau * c_g + (1 - tau) * c_green);
-                    c_blue = (int) Math.floor(tau * c_b + (1 - tau) * c_blue);
                 }
                                
-                // Because the current implementation of the compositing can be
-                // opaque depending on the transfer function values (e.g. if the
-                // intensity is put at 0.6, the intensity will never surpass this
-                // value), the intensity if present is mapped to maximum, 
-                // otherwise it is mapped to 0
-                //c_alpha = c_alpha > 0 ? 255 : 0;
+                int c_alpha = (1 - c_a) <= 1.0 ? (int) Math.floor((1 - c_a) * 255) : 255;
+                int c_red = c_r <= 1.0 ? (int) Math.floor(c_r * 255) : 255;
+                int c_green = c_g <= 1.0 ? (int) Math.floor(c_g * 255) : 255;
+                int c_blue = c_b <= 1.0 ? (int) Math.floor(c_b * 255) : 255;
                 // Determine the pixel colorand set the image to that color
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
                 image.setRGB(i, j, pixelColor);
@@ -451,7 +470,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
  
         // sample on a plane through the origin of the volume data
-        TFColor voxelColor = new TFColor();
         
         tfEditor2D = new TransferFunction2DEditor(volume, gradients);
         double opacity = tfEditor2D.triangleWidget.color.a;
@@ -469,33 +487,55 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 // is set just in front of the image using: 
                 // imageCenter * viewVec[x];
                 pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                        + volumeCenter[0] + imageCenter * viewVec[0];
+                        + volumeCenter[0] - imageCenter * viewVec[0];
                 pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                        + volumeCenter[1] + imageCenter * viewVec[1];
+                        + volumeCenter[1] - imageCenter * viewVec[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                        + volumeCenter[2] + imageCenter * viewVec[2];
+                        + volumeCenter[2] - imageCenter * viewVec[2];
                 
-                int val = getVoxel(pixelCoord);
-                voxelColor = tFunc.getColor(val);
-                
-                // BufferedImage expects a pixel color packed as ARGB in an int
-                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
-                
+ 
                 // Creating a boolean which is used for the while-loop to see
                 // when the viewvector leaves the image boundaries
                 boolean cont = true;
-                
+                double c_a = 1.0; 
+                    
                 // A while-loop used to "walk" across the view vector
                 while(cont) {
+
+                    // Get the voxelColor of the new pixel coordinates       
+                    int val = getVoxel(pixelCoord);
+                    
+                    double alpha; 
+                    
+                    int pixelCoordX = (int) Math.floor(pixelCoord[0]);
+                    int pixelCoordY = (int) Math.floor(pixelCoord[1]);
+                    int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
+                    float mag = -1;
+                    if (pixelCoordX < 0 || pixelCoordX + 1 > volume.getDimX() 
+                            || pixelCoordY < 0 || pixelCoordY + 1 > volume.getDimY()
+                            || pixelCoordZ < 0 || pixelCoordZ + 1 > volume.getDimZ()) {
+                    }
+                    else{
+                        mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
+                    }
+
+                    if (mag == 0 && val == bIntensity) {
+                        alpha = opacity * 1.0; 
+                        
+                    } else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
+                        alpha = opacity * (1 - (1 / radius) * Math.abs((bIntensity - val) / mag));
+                    } else {
+                        alpha = opacity * 0.0;
+                    }
+
+                    c_a = c_a * (1 - alpha);
+                    
                     // Each iteration, a step of X is taken across the view
                     // vector and the corresponding pixel coordinates of the 
                     // new voxel is determined. 
-                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+                    pixelCoord[0] = pixelCoord[0] + 8 * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + 8 * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + 8 * viewVec[2];
                     
                     // If the view vector leaves the image boundaries, the while
                     // loop is terminated. The boundaries are set to correspond
@@ -509,37 +549,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                             ) {
                         cont = false; 
                     }
-                    
-                    // Get the voxelColor of the new pixel coordinates       
-                    val = getVoxel(pixelCoord); 
-                    voxelColor = tFunc.getColor(val);
-                    
-                    // Determine the intensity corresponding to the new pixel
-                    // coordinates
-                    double tau = voxelColor.a;
-                    
-                    // Calculating the individual ARGB values of the new pixel
-                    // coordinates
-                    int c_a = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
-                    int c_r = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
-                    int c_g = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
-                    int c_b = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255; 
-                    
-                    // Depending on the tau-value, determine the corresponding 
-                    // ARGB values of using the compositing "back to front" 
-                    // implementation based on the slides
-                    c_alpha = (int) Math.floor(tau * c_a + (1 - tau) * c_alpha);
-                    c_red = (int) Math.floor(tau * c_r + (1 - tau) * c_red);
-                    c_green = (int) Math.floor(tau * c_g + (1 - tau) * c_green);
-                    c_blue = (int) Math.floor(tau * c_b + (1 - tau) * c_blue);
                 }
                                
-                // Because the current implementation of the compositing can be
-                // opaque depending on the transfer function values (e.g. if the
-                // intensity is put at 0.6, the intensity will never surpass this
-                // value), the intensity if present is mapped to maximum, 
-                // otherwise it is mapped to 0
-                c_alpha = c_alpha > 0 ? 255 : 0;
+                int c_alpha = (1 - c_a) <= 1.0 ? (int) Math.floor((1 - c_a) * 255) : 255;
+                
+                int c_red = colorR <= 1.0 ? (int) Math.floor(colorR * 255) : 255;
+                int c_green = colorG <= 1.0 ? (int) Math.floor(colorG * 255) : 255;
+                int c_blue = colorB <= 1.0 ? (int) Math.floor(colorB * 255) : 255;
                 
                 // Determine the pixel colorand set the image to that color
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
