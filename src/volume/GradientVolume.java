@@ -56,6 +56,7 @@ public class GradientVolume {
             data[i] = zero;
         }
         
+//        data[1] = new VoxelGradient(1,1,1);
         for (int i = 1; i < (dimX - 1); i++) {
             for (int j = 1; j < (dimY - 1); j++){
                 for (int k = 1; k < (dimZ - 1); k++){

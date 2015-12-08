@@ -488,6 +488,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double opacity = tfEditor2D.triangleWidget.color.a;
         double radius = tfEditor2D.triangleWidget.radius;
         double bIntensity = tfEditor2D.triangleWidget.baseIntensity;
+        double maxMag = tfEditor2D.triangleWidget.maxMag;
+        double minMag = tfEditor2D.triangleWidget.minMag;
+        double maxGradientMagnitude = tfEditor2D.getMGM();
+        radius = (radius / (maxMag - minMag)) * (maxGradientMagnitude - minMag);
            
         double colorR = tfEditor2D.triangleWidget.color.r;
         double colorG = tfEditor2D.triangleWidget.color.g;
@@ -531,12 +535,14 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         
 //                        float mag = -1;
                         float mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
-                        
-                        if (mag == 0 && val == bIntensity) {
+
+                        if ((mag - minMag) == 0 && mag <= maxMag && val == bIntensity) {
                             alpha = opacity * 1; 
                         } 
-                        else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
-                            alpha = opacity * (1 - ((1 / radius) * Math.abs((bIntensity - val) / mag)));
+                        else if ((mag - minMag) > 0 && mag <= maxMag
+                                && (val - radius * (mag - minMag)) <= bIntensity 
+                                && bIntensity <= (val + radius * (mag - minMag))) {
+                            alpha = opacity * (1 - ((1 / radius) * Math.abs((bIntensity - val) / (mag - minMag))));
                         } 
                         else {
                             alpha = opacity * 0;

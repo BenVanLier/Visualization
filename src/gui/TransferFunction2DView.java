@@ -70,15 +70,18 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 }
             }
         }
-        
-        int ypos = h;
+
+//        int ypos = h;        
+        int yposB = (int) Math.floor((ed.ybins / ed.getMGM()) * ed.triangleWidget.minMagDraw);
+        int yposR = (int) Math.floor((ed.ybins / ed.getMGM()) * ed.triangleWidget.maxMagDraw);
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
         g2.setColor(Color.black);
-        baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
+        baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, yposB - DOTSIZE, DOTSIZE, DOTSIZE);
         g2.fill(baseControlPoint);
-        g2.drawLine(xpos, ypos, xpos - (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), 0);
-        g2.drawLine(xpos, ypos, xpos + (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), 0);
-        radiusControlPoint = new Ellipse2D.Double(xpos + (ed.triangleWidget.radius * binWidth * maxGradientMagnitude) - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
+        g2.drawLine(xpos, yposB, xpos - (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), yposR);
+        g2.drawLine(xpos, yposB, xpos + (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), yposR);
+        g2.drawLine(xpos - (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), yposR, xpos + (int) (ed.triangleWidget.radius * binWidth * maxGradientMagnitude), yposR);
+        radiusControlPoint = new Ellipse2D.Double(xpos + (ed.triangleWidget.radius * binWidth * maxGradientMagnitude) - DOTSIZE / 2,  yposR, DOTSIZE, DOTSIZE);
         g2.fill(radiusControlPoint);
     }
     
@@ -101,12 +104,20 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 
                 if (selectedBaseControlPoint) {
                     // restrain to horizontal movement
-                    dragEnd.setLocation(dragEnd.x, baseControlPoint.getCenterY());
+                    // also make sure that baseControlPoint cannot go above the radiusControlpoint
+                    dragEnd.setLocation(dragEnd.x, dragEnd.y);
+                    if (dragEnd.y < radiusControlPoint.getCenterY()) {
+                        dragEnd.y = (int) radiusControlPoint.getCenterY();
+                    }
                 } else if (selectedRadiusControlPoint) {
                     // restrain to horizontal movement and avoid radius getting 0
-                    dragEnd.setLocation(dragEnd.x, radiusControlPoint.getCenterY());
+                    // also make sure that radiusControlPoint cannot go under the baseControlpoint
+                    dragEnd.setLocation(dragEnd.x, dragEnd.y);
                     if (dragEnd.x - baseControlPoint.getCenterX() <= 0) {
                         dragEnd.x = (int) (baseControlPoint.getCenterX() + 1);
+                    }
+                    if (dragEnd.y > baseControlPoint.getCenterY()) {
+                        dragEnd.y = (int) (baseControlPoint.getCenterY());
                     }
                 }
                 if (dragEnd.x < 0) {
@@ -115,13 +126,24 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 if (dragEnd.x >= getWidth()) {
                     dragEnd.x = getWidth() - 1;
                 }
+                if (dragEnd.y < 0) {
+                    dragEnd.y = 0;
+                }
+                if (dragEnd.y >= getHeight()) {
+                    dragEnd.y = getHeight() - 1;
+                }
                 double w = getWidth();
                 double h = getHeight();
                 double binWidth = (double) w / (double) ed.xbins;
+                double binHeight = (double) h / (double) ed.ybins;
                 if (selectedBaseControlPoint) {
                     ed.triangleWidget.baseIntensity = (short) (dragEnd.x / binWidth);
+                    ed.triangleWidget.minMagDraw = (dragEnd.y * binHeight *(ed.getMGM()/ed.ybins));
+                    ed.triangleWidget.minMag = ed.getMGM() - ed.triangleWidget.minMagDraw;
                 } else if (selectedRadiusControlPoint) {
                     ed.triangleWidget.radius = (dragEnd.x - (ed.triangleWidget.baseIntensity * binWidth))/(binWidth*maxGradientMagnitude);
+                    ed.triangleWidget.maxMagDraw = (dragEnd.y * binHeight *(ed.getMGM()/ed.ybins));
+                    ed.triangleWidget.maxMag = ed.getMGM() - ed.triangleWidget.maxMagDraw;
                 }
                 ed.setSelectedInfo();
                 
