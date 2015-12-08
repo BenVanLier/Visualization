@@ -258,30 +258,42 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                 // Creating a boolean which is used for the while-loop to see
                 // when the viewvector leaves the image boundaries
-                boolean cont = true;
+//                boolean cont = true;
                 int maxVal = getVoxel(pixelCoord);
 
-                // A while-loop used to "walk" across the view vector
-                while(cont) {
-                    // Each iteration, a step of X is taken across the view
-                    // vector and the corresponding pixel coordinates of the 
-                    // new voxel is determined. 
-                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
-                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
-                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+                
+                int scaling = 5; 
+                for (double k = 0.0; k < 4 * imageCenter; k = k + scaling) {
+                    pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
+                    pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
+                    pixelCoord[2] = pixelCoord[2] + scaling * viewVec[2];
                     
-                    // If the view vector leaves the image boundaries, the while
-                    // loop is terminated. The boundaries are set to correspond
-                    // ......
-                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-                            ) {
-                        cont = false; 
-                    }
+                    if (pixelCoord[0] < 0 || pixelCoord[0] > (volume.getDimX() - 1) 
+                            || pixelCoord[1] < 0 || pixelCoord[1] > (volume.getDimY() - 1)
+                            || pixelCoord[2] < 0 || pixelCoord[2] > (volume.getDimZ() - 1)) {
+                        
+                    } else {
+//                // A while-loop used to "walk" across the view vector
+//                while(cont) {
+//                    // Each iteration, a step of X is taken across the view
+//                    // vector and the corresponding pixel coordinates of the 
+//                    // new voxel is determined. 
+//                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
+//                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
+//                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
+//                    
+//                    // If the view vector leaves the image boundaries, the while
+//                    // loop is terminated. The boundaries are set to correspond
+//                    // ......
+//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
+//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
+//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
+//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
+//                            ) {
+//                        cont = false; 
+//                    }
                     
                     // Get the Voxel value for the new pixel coordinates
                     int val = getVoxel(pixelCoord);
@@ -290,6 +302,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     // maxValue is changed to this value, otherwise it remains
                     // untouched
                     maxVal = val > maxVal ? val : maxVal; 
+                    }
                 }
                 
                 // Map the intensity to a grey value by linear scaling
