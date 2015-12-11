@@ -16,7 +16,6 @@ import util.TFChangeListener;
 import util.VectorMath;
 import volume.GradientVolume;
 import volume.Volume;
-import volume.VoxelGradient;
 
 /**
  *
@@ -149,7 +148,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         // Linear interpolation between the two bi-linear interpolation values
         return interpolation(temp[0], temp[1], gamma);
-        //return volume.getVoxel(x, y, z);
     }
 
     void slicer(double[] viewMatrix) {
@@ -256,13 +254,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                         + volumeCenter[2] - imageCenter * viewVec[2];
 
-                // Creating a boolean which is used for the while-loop to see
-                // when the viewvector leaves the image boundaries
-//                boolean cont = true;
                 int maxVal = getVoxel(pixelCoord);
-
                 
+                // the int scaling is used to set the stepsize at every iteration
+                // of the loop that runs over the view vector
                 int scaling = 5; 
+                
                 for (double k = 0.0; k < 4 * imageCenter; k = k + scaling) {
                     pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
                     pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
@@ -273,28 +270,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                             || pixelCoord[2] < 0 || pixelCoord[2] > (volume.getDimZ() - 1)) {
                         
                     } else {
-//                // A while-loop used to "walk" across the view vector
-//                while(cont) {
-//                    // Each iteration, a step of X is taken across the view
-//                    // vector and the corresponding pixel coordinates of the 
-//                    // new voxel is determined. 
-//                    pixelCoord[0] = pixelCoord[0] + 5 * viewVec[0];
-//                    pixelCoord[1] = pixelCoord[1] + 5 * viewVec[1];
-//                    pixelCoord[2] = pixelCoord[2] + 5 * viewVec[2];
-//                    
-//                    // If the view vector leaves the image boundaries, the while
-//                    // loop is terminated. The boundaries are set to correspond
-//                    // ......
-//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-//                            ) {
-//                        cont = false; 
-//                    }
-                    
                     // Get the Voxel value for the new pixel coordinates
                     int val = getVoxel(pixelCoord);
                     // Determine if the voxel value of the new coordinates
@@ -311,7 +286,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 voxelColor.b = voxelColor.r;
                 voxelColor.a = maxVal > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
                 
-                
                 // BufferedImage expects a pixel color packed as ARGB in an int
                 int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
                 int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
@@ -321,7 +295,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 image.setRGB(i, j, pixelColor);
             }
         }
-
     }
 
     void compositing(double[] viewMatrix) {
@@ -374,50 +347,10 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 double c_g = voxelColor.g <= 1.0 ? voxelColor.g : 1.0;
                 double c_b = voxelColor.b <= 1.0 ? voxelColor.b : 1.0;
                 
-                // Creating a boolean which is used for the while-loop to see
-                // when the viewvector leaves the image boundaries
-//                boolean cont = true;
-                
-//                // A while-loop used to "walk" across the view vector
-//                while(cont) {
-//                    // Each iteration, a step of X is taken across the view
-//                    // vector and the corresponding pixel coordinates of the 
-//                    // new voxel is determined. 
-//                    pixelCoord[0] = pixelCoord[0] + 10 * viewVec[0];
-//                    pixelCoord[1] = pixelCoord[1] + 10 * viewVec[1];
-//                    pixelCoord[2] = pixelCoord[2] + 10 * viewVec[2];
-//                    
-//                    // If the view vector leaves the image boundaries, the while
-//                    // loop is terminated. The boundaries are set to correspond
-//                    // ......
-//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-//                            ) {
-//                        cont = false; 
-//                    } else {
-//                    
-//                        // Get the voxelColor of the new pixel coordinates       
-//                        val = getVoxel(pixelCoord); 
-//                        voxelColor = tFunc.getColor(val);
-//
-//                        // Determine the intensity corresponding to the new pixel
-//                        // coordinates
-//                        double tau = voxelColor.a <= 1.0 ? voxelColor.a : 1.0;
-//
-//                        // Calculating the individual ARGB values of the new pixel
-//                        // coordinates
-//                        c_a = c_a * (1 - tau);
-//
-//                        c_r = voxelColor.r * tau + (1 - tau) * c_r; 
-//                        c_g = voxelColor.g * tau + (1 - tau) * c_g; 
-//                        c_b = voxelColor.b * tau + (1 - tau) * c_b; 
-//                    }
-//                }
+                // the int scaling is used to set the stepsize at every iteration
+                // of the loop that runs over the view vector
                 int scaling = 1; 
+                
                 for (double k = 0.0; k < 4 * imageCenter; k = k + scaling) {
                     pixelCoord[0] = pixelCoord[0] + scaling * viewVec[0];
                     pixelCoord[1] = pixelCoord[1] + scaling * viewVec[1];
@@ -454,7 +387,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 image.setRGB(i, j, pixelColor);
             }
         }
-
     }
     
     void TF2D(double[] viewMatrix) {
@@ -481,10 +413,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double[] pixelCoord = new double[3];
         double[] volumeCenter = new double[3];
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
- 
         // sample on a plane through the origin of the volume data
         
-//        tfEditor2D = new TransferFunction2DEditor(volume, gradients);
+        //
         double opacity = tfEditor2D.triangleWidget.color.a;
         double radius = tfEditor2D.triangleWidget.radius;
         double bIntensity = tfEditor2D.triangleWidget.baseIntensity;
@@ -509,12 +440,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         + volumeCenter[1] - imageCenter * viewVec[1];
                 pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                         + volumeCenter[2] - imageCenter * viewVec[2];
-                
  
-//                 Creating a boolean which is used for the while-loop to see
-//                 when the viewvector leaves the image boundaries
-//                boolean cont = true;
+                // c_a is initially set to 1, so that the opacity will be 0 if
+                // no voxel has an opacity above 0
                 double c_a = 1;
+                
+                // the int scaling is used to set the stepsize at every iteration
+                // of the loop that runs over the view vector
                 double scaling = 1;
                 
                 for (double k = 0.0; k < 2 * imageCenter; k = k + scaling) {
@@ -522,7 +454,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     if (pixelCoord[0] < 0 || pixelCoord[0] > (volume.getDimX() - 1) 
                             || pixelCoord[1] < 0 || pixelCoord[1] > (volume.getDimY() - 1)
                             || pixelCoord[2] < 0 || pixelCoord[2] > (volume.getDimZ() - 1)) {
-                        
                     } 
                     else {
                         int val = getVoxel(pixelCoord);
@@ -533,7 +464,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         int pixelCoordY = (int) Math.floor(pixelCoord[1]);
                         int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
                         
-//                        float mag = -1;
                         float mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
 
                         if ((mag - minMag) == 0 && mag <= maxMag && val == bIntensity) {
@@ -556,58 +486,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = pixelCoord[2] + scaling * viewVec[2];
                 }
                                
-//                // A while-loop used to "walk" across the view vector
-//                while(cont) {
-//
-//                    // Get the voxelColor of the new pixel coordinates       
-//                    int val = getVoxel(pixelCoord);
-//                    
-//                    double alpha; 
-//                    
-//                    int pixelCoordX = (int) Math.floor(pixelCoord[0]);
-//                    int pixelCoordY = (int) Math.floor(pixelCoord[1]);
-//                    int pixelCoordZ = (int) Math.floor(pixelCoord[2]);
-//                    float mag = -1;
-//                    if (pixelCoordX < 0 || pixelCoordX + 1 > volume.getDimX() 
-//                            || pixelCoordY < 0 || pixelCoordY + 1 > volume.getDimY()
-//                            || pixelCoordZ < 0 || pixelCoordZ + 1 > volume.getDimZ()) {
-//                    }
-//                    else{
-//                        mag = gradients.getGradient(pixelCoordX, pixelCoordY, pixelCoordZ).mag;
-//                    }
-//
-//                    if (mag == 0 && val == bIntensity) {
-//                        alpha = opacity * 1.0; 
-//                        
-//                    } else if (mag > 0 && (val - radius * mag) <= bIntensity && bIntensity <= (val + radius * mag)) {
-//                        alpha = opacity * (1 - (1 / radius) * Math.abs((bIntensity - val) / mag));
-//                    } else {
-//                        alpha = opacity * 0.0;
-//                    }
-//
-//                    c_a = c_a * (1 - alpha);
-//                    
-//                    // Each iteration, a step of X is taken across the view
-//                    // vector and the corresponding pixel coordinates of the 
-//                    // new voxel is determined. 
-//                    pixelCoord[0] = pixelCoord[0] + 8 * viewVec[0];
-//                    pixelCoord[1] = pixelCoord[1] + 8 * viewVec[1];
-//                    pixelCoord[2] = pixelCoord[2] + 8 * viewVec[2];
-//                    
-//                    // If the view vector leaves the image boundaries, the while
-//                    // loop is terminated. The boundaries are set to correspond
-//                    // ......
-//                    if (pixelCoord[0] > (volumeCenter[0] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[0] < (volumeCenter[0] - Math.sqrt(2) * imageCenter)
-//                        || pixelCoord[1] > (volumeCenter[1] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[1] < (volumeCenter[1] - Math.sqrt(2) * imageCenter) 
-//                        || pixelCoord[2] > (volumeCenter[2] + Math.sqrt(2) * imageCenter) 
-//                            || pixelCoord[2] < (volumeCenter[2] - Math.sqrt(2) * imageCenter)
-//                            ) {
-//                        cont = false; 
-//                    }
-//                }
-                               
                 int c_alpha = (1 - c_a) <= 1.0 ? (int) Math.floor((1 - c_a) * 255) : 255;
                 
                 int c_red = colorR <= 1.0 ? (int) Math.floor(colorR * 255) : 255;
@@ -619,7 +497,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 image.setRGB(i, j, pixelColor);
             }
         }
-
     }
     
     private void drawBoundingBox(GL2 gl) {
@@ -694,6 +571,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, viewMatrix, 0);
 
         long startTime = System.currentTimeMillis();
+        
+        //a switch is used to change the raycaster setting
         switch(renderOption){
             case 1: slicer(viewMatrix);
                 break;
@@ -704,7 +583,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             case 4: TF2D(viewMatrix);
                 break;
             default: slicer(viewMatrix);
-;               break; 
+                break; 
         }
         
         long endTime = System.currentTimeMillis();

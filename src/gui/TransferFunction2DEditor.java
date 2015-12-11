@@ -302,8 +302,8 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
             this.radius = r;
             this.maxMag = max;
             this.maxMagDraw = maxGradientMagnitude - max;
-            this.minMagDraw = maxGradientMagnitude - min;
             this.minMag = min;
+            this.minMagDraw = maxGradientMagnitude - min;
             this.color = new TFColor(0.0, 204.0/255.0, 153.0/255.0, 0.3);
         }
     }
